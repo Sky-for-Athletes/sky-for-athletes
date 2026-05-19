@@ -1,0 +1,43 @@
+# ######################################################################
+# SkyRunner Analytics - Root .gitignore (Monorepo)
+# ######################################################################
+
+# Dependências (Ignora node_modules em qualquer subpasta)
+**/node_modules/
+
+# Arquivos de Build e Produção
+**/dist/
+**/build/
+**/out/
+**/.next/
+*.zip
+
+# Arquivos de Configuração Local e Variáveis de Ambiente (CRÍTICO)
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+
+# Logs de Erros e Execução
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Arquivos do Sistema Operacional
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# Configurações Locais de IDEs (Opcional, mas recomendado para duplas)
+**/.vscode/
+**/.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp

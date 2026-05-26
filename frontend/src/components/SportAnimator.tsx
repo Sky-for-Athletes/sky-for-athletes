@@ -15,8 +15,13 @@ export default function SportAnimator() {
       const wrapper = lottieRef.current;
       if (wrapper?.animationItem) {
         const frame = wrapper.animationItem.currentFrame;
-        const progress = frame / 179;
-        const x = -200 + (window.innerWidth + 400) * progress;
+        let x: number;
+        if (frame <= 91) {
+          const progress = frame / 91;
+          x = -200 + (window.innerWidth + 400) * progress;
+        } else {
+          x = window.innerWidth + 200;
+        }
         container.style.transform = `translateX(${x}px)`;
       }
       requestAnimationFrame(animate);

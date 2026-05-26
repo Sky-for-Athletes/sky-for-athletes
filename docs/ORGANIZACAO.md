@@ -73,7 +73,7 @@ sky-for-athletes/
 | Pasta | Responsabilidade |
 |---|---|
 | `components/` | Componentes React reutilizáveis (Mapa Leaflet, Cartão de Clima, Indicador Verde/Amarelo/Vermelho) |
-| `pages/` | Páginas completas associadas a rotas (Login, Dashboard, Configurações, Relatórios) |
+| `pages/` | Páginas completas associadas a rotas (LandingPage, Login, Signup, Dashboard, Settings, Reports) |
 | `hooks/` | Custom hooks para lógica com estado (autenticação, dados climáticos, limites do usuário) |
 | `services/` | Módulos Axios com chamadas para API REST do backend |
 | `contexts/` | Contextos React para estado global (ex: usuário logado) |

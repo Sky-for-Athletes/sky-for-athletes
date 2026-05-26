@@ -1,58 +1,29 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 // @ts-expect-error - lottie-react ESM entry exports Lottie as default
 import Lottie from "lottie-react/build/index.es.js";
 import animationData from "../assets/animation_sport.json";
 
-const segments: [number, number][] = [
-  [0, 39],
-  [40, 91],
-  [92, 178],
-];
-
 export default function SportAnimator() {
   const lottieRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number>(0);
-  const sportIndexRef = useRef(0);
-
-  const playSegment = useCallback((index: number) => {
-    const anim = lottieRef.current;
-    if (!anim) return;
-    const [start, end] = segments[index]!;
-    anim.playSegments([start, end], true);
-  }, []);
-
-  const handleLoad = useCallback(() => {
-    playSegment(0);
-  }, [playSegment]);
-
-  const onComplete = useCallback(() => {
-    sportIndexRef.current = (sportIndexRef.current + 1) % segments.length;
-    playSegment(sportIndexRef.current);
-  }, [playSegment]);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const animate = () => {
-      const anim = lottieRef.current;
-      if (anim) {
-        const currentFrame = anim.currentFrame;
-        const [start, end] = segments[sportIndexRef.current]!;
-        const progress = Math.min(
-          (currentFrame - start) / (end - start),
-          1,
-        );
+      const wrapper = lottieRef.current;
+      if (wrapper?.animationItem) {
+        const frame = wrapper.animationItem.currentFrame;
+        const progress = frame / 179;
         const x = -200 + (window.innerWidth + 400) * progress;
         container.style.transform = `translateX(${x}px)`;
       }
-      rafRef.current = requestAnimationFrame(animate);
+      requestAnimationFrame(animate);
     };
 
-    rafRef.current = requestAnimationFrame(animate);
-
-    return () => cancelAnimationFrame(rafRef.current);
+    const raf = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   return (
@@ -61,10 +32,8 @@ export default function SportAnimator() {
         <Lottie
           lottieRef={lottieRef}
           animationData={animationData}
-          loop={false}
-          autoplay={false}
-          onLoaded={handleLoad}
-          onComplete={onComplete}
+          loop={true}
+          autoplay={true}
           className="w-32 h-32"
           style={{ filter: "brightness(0) invert(0.7)" }}
         />

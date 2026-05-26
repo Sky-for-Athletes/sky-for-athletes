@@ -63,7 +63,7 @@ export default function SportAnimator() {
           animationData={animationData}
           loop={false}
           autoplay={false}
-          onLoad={handleLoad}
+          onLoaded={handleLoad}
           onComplete={onComplete}
           className="w-32 h-32"
           style={{ filter: "brightness(0) invert(0.7)" }}

@@ -16,8 +16,8 @@ export default function SportAnimator() {
       if (wrapper?.animationItem) {
         const frame = wrapper.animationItem.currentFrame;
         let x: number;
-        if (frame <= 91) {
-          const progress = frame / 91;
+        if (frame <= 150) {
+          const progress = frame / 150;
           x = -200 + (window.innerWidth + 400) * progress;
         } else {
           x = window.innerWidth + 200;

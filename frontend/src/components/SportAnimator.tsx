@@ -22,6 +22,10 @@ export default function SportAnimator() {
     anim.playSegments([start, end], true);
   }, []);
 
+  const handleLoad = useCallback(() => {
+    playSegment(0);
+  }, [playSegment]);
+
   const onComplete = useCallback(() => {
     sportIndexRef.current = (sportIndexRef.current + 1) % segments.length;
     playSegment(sportIndexRef.current);
@@ -31,7 +35,6 @@ export default function SportAnimator() {
     const container = containerRef.current;
     if (!container) return;
 
-    let raf = rafRef.current;
     const animate = () => {
       const anim = lottieRef.current;
       if (anim) {
@@ -44,14 +47,13 @@ export default function SportAnimator() {
         const x = -200 + (window.innerWidth + 400) * progress;
         container.style.transform = `translateX(${x}px)`;
       }
-      raf = requestAnimationFrame(animate);
+      rafRef.current = requestAnimationFrame(animate);
     };
 
-    raf = requestAnimationFrame(animate);
-    playSegment(0);
+    rafRef.current = requestAnimationFrame(animate);
 
-    return () => cancelAnimationFrame(raf);
-  }, [playSegment]);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
 
   return (
     <div className="absolute bottom-16 left-0 right-0 h-36 overflow-hidden pointer-events-none">
@@ -61,6 +63,7 @@ export default function SportAnimator() {
           animationData={animationData}
           loop={false}
           autoplay={false}
+          onLoad={handleLoad}
           onComplete={onComplete}
           className="w-32 h-32"
           style={{ filter: "brightness(0) invert(0.7)" }}

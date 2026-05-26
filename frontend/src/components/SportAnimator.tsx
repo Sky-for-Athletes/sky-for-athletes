@@ -48,7 +48,7 @@ export default function SportAnimator() {
 
     return () => {
       cancelAnimationFrame(rafRef.current);
-      lottie.removeEventListener("complete", onComplete);
+      if (lottie) lottie.removeEventListener("complete", onComplete);
     };
   }, []);
 

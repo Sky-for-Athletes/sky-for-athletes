@@ -1,9 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 // @ts-expect-error - lottie-react ESM entry exports Lottie as default
 import Lottie from "lottie-react/build/index.es.js";
 import animationData from "../assets/animation_sport.json";
 
-const segments = [
+const segments: [number, number][] = [
   [0, 39],
   [40, 91],
   [92, 178],
@@ -15,21 +15,21 @@ export default function SportAnimator() {
   const rafRef = useRef<number>(0);
   const sportIndexRef = useRef(0);
 
+  const playSegment = useCallback((index: number) => {
+    const anim = lottieRef.current;
+    if (!anim) return;
+    const [start, end] = segments[index]!;
+    anim.playSegments([start, end], true);
+  }, []);
+
+  const onComplete = useCallback(() => {
+    playSegment(sportIndexRef.current);
+  }, [playSegment]);
+
   useEffect(() => {
     const container = containerRef.current;
-    const lottie = lottieRef.current;
-    if (!container || !lottie) return;
+    if (!container) return;
 
-    const playSegment = (index: number) => {
-      const [start, end] = segments[index]!;
-      lottie.playSegments([start, end], true);
-    };
-
-    const onComplete = () => {
-      playSegment(sportIndexRef.current);
-    };
-
-    lottie.addEventListener("complete", onComplete);
     playSegment(0);
 
     let x = -200;
@@ -37,7 +37,8 @@ export default function SportAnimator() {
       x += 2;
       if (x > window.innerWidth + 200) {
         x = -200;
-        sportIndexRef.current = (sportIndexRef.current + 1) % segments.length;
+        sportIndexRef.current =
+          (sportIndexRef.current + 1) % segments.length;
         playSegment(sportIndexRef.current);
       }
       container.style.transform = `translateX(${x}px)`;
@@ -46,11 +47,8 @@ export default function SportAnimator() {
 
     rafRef.current = requestAnimationFrame(animate);
 
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      if (lottie) lottie.removeEventListener("complete", onComplete);
-    };
-  }, []);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [playSegment]);
 
   return (
     <div className="absolute bottom-16 left-0 right-0 h-36 overflow-hidden pointer-events-none">
@@ -60,6 +58,7 @@ export default function SportAnimator() {
           animationData={animationData}
           loop={false}
           autoplay={false}
+          onComplete={onComplete}
           className="w-32 h-32"
           style={{ filter: "brightness(0) invert(0.7)" }}
         />

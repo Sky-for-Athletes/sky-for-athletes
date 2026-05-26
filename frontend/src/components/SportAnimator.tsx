@@ -23,6 +23,7 @@ export default function SportAnimator() {
   }, []);
 
   const onComplete = useCallback(() => {
+    sportIndexRef.current = (sportIndexRef.current + 1) % segments.length;
     playSegment(sportIndexRef.current);
   }, [playSegment]);
 
@@ -30,24 +31,26 @@ export default function SportAnimator() {
     const container = containerRef.current;
     if (!container) return;
 
-    playSegment(0);
-
-    let x = -200;
+    let raf = rafRef.current;
     const animate = () => {
-      x += 2;
-      if (x > window.innerWidth + 200) {
-        x = -200;
-        sportIndexRef.current =
-          (sportIndexRef.current + 1) % segments.length;
-        playSegment(sportIndexRef.current);
+      const anim = lottieRef.current;
+      if (anim) {
+        const currentFrame = anim.currentFrame;
+        const [start, end] = segments[sportIndexRef.current]!;
+        const progress = Math.min(
+          (currentFrame - start) / (end - start),
+          1,
+        );
+        const x = -200 + (window.innerWidth + 400) * progress;
+        container.style.transform = `translateX(${x}px)`;
       }
-      container.style.transform = `translateX(${x}px)`;
-      rafRef.current = requestAnimationFrame(animate);
+      raf = requestAnimationFrame(animate);
     };
 
-    rafRef.current = requestAnimationFrame(animate);
+    raf = requestAnimationFrame(animate);
+    playSegment(0);
 
-    return () => cancelAnimationFrame(rafRef.current);
+    return () => cancelAnimationFrame(raf);
   }, [playSegment]);
 
   return (

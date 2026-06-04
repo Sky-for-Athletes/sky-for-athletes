@@ -4,6 +4,7 @@ import SportSelector from "../components/SportSelector";
 import WeatherCard from "../components/WeatherCard";
 import WeatherMap from "../components/WeatherMap";
 import LocationPicker from "../components/LocationPicker";
+import LocationSearch from "../components/LocationSearch";
 import FavoriteLocations from "../components/FavoriteLocations";
 import { useWeather } from "../hooks/useWeather";
 import { useFavorites } from "../hooks/useFavorites";
@@ -67,7 +68,14 @@ export default function Dashboard() {
 
               <div>
                 <label className="block text-gray-300 text-sm font-medium mb-1.5">
-                  Selecione o local no mapa
+                  Local
+                </label>
+                <LocationSearch onSelect={selectLocation} />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                  Ou selecione no mapa
                 </label>
                 <LocationPicker
                   onLocationSelect={selectLocation}

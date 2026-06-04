@@ -10,7 +10,11 @@ export function useLocationPicker() {
   const [location, setLocation] = useState<LocationState | null>(null);
   const [resolving, setResolving] = useState(false);
 
-  const selectLocation = useCallback(async (lat: number, lon: number) => {
+  const selectLocation = useCallback(async (lat: number, lon: number, cityName?: string) => {
+    if (cityName) {
+      setLocation({ lat, lon, city: cityName });
+      return;
+    }
     setLocation({ lat, lon, city: `${lat.toFixed(4)}, ${lon.toFixed(4)}` });
     setResolving(true);
     try {

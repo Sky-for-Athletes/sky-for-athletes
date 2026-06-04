@@ -3,52 +3,52 @@ import NavbarAuthenticated from "../components/NavbarAuthenticated";
 import SportSelector from "../components/SportSelector";
 import WeatherCard from "../components/WeatherCard";
 import WeatherMap from "../components/WeatherMap";
+import LocationPicker from "../components/LocationPicker";
 import FavoriteLocations from "../components/FavoriteLocations";
 import { useWeather } from "../hooks/useWeather";
 import { useFavorites } from "../hooks/useFavorites";
+import { useLocationPicker } from "../hooks/useLocationPicker";
 
 export default function Dashboard() {
   const { data, loading, error, evaluate, reset } = useWeather();
   const { favorites, loading: favLoading, addFavorite } = useFavorites();
+  const { location, resolving, selectLocation, reset: resetLocation } = useLocationPicker();
 
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
   const [activity, setActivity] = useState("");
-  const [cityName, setCityName] = useState("");
+  const [customName, setCustomName] = useState("");
 
   const handleEvaluate = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!latitude || !longitude || !activity) return;
-      await evaluate(Number(latitude), Number(longitude), activity);
+      if (!location || !activity) return;
+      await evaluate(location.lat, location.lon, activity);
     },
-    [latitude, longitude, activity, evaluate]
+    [location, activity, evaluate]
   );
 
   const handleSelectFavorite = useCallback(
     (lat: number, lon: number, name: string) => {
-      setLatitude(String(lat));
-      setLongitude(String(lon));
-      setCityName(name);
+      selectLocation(lat, lon);
+      setCustomName(name);
       if (activity) {
         evaluate(lat, lon, activity);
       }
     },
-    [activity, evaluate]
+    [activity, evaluate, selectLocation]
   );
 
   const handleSaveFavorite = useCallback(async () => {
-    if (!latitude || !longitude) return;
+    if (!location) return;
     await addFavorite({
-      name: cityName || `Local (${latitude}, ${longitude})`,
+      name: customName || location.city || `Local (${location.lat}, ${location.lon})`,
       coordinates: {
         type: "Point",
-        coordinates: [Number(longitude), Number(latitude)],
+        coordinates: [location.lon, location.lat],
       },
     });
-  }, [latitude, longitude, cityName, addFavorite]);
+  }, [location, customName, addFavorite]);
 
-  const canEvaluate = latitude && longitude && activity;
+  const canEvaluate = !!location && !!activity;
 
   return (
     <div className="min-h-screen bg-dark-bg">
@@ -65,35 +65,21 @@ export default function Dashboard() {
             >
               <h2 className="text-white font-semibold">Avaliar Condições</h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1.5">
-                    Latitude
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    required
-                    value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
-                    className="w-full bg-dark-bg border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-signal/50 focus:border-green-signal"
-                    placeholder="-3.717"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-1.5">
-                    Longitude
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    required
-                    value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
-                    className="w-full bg-dark-bg border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-signal/50 focus:border-green-signal"
-                    placeholder="-38.504"
-                  />
-                </div>
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                  Selecione o local no mapa
+                </label>
+                <LocationPicker
+                  onLocationSelect={selectLocation}
+                  selectedLat={location?.lat}
+                  selectedLon={location?.lon}
+                />
+                {location && (
+                  <p className="text-gray-400 text-xs mt-2">
+                    {location.city} — {location.lat.toFixed(4)}, {location.lon.toFixed(4)}
+                    {resolving && " (obtendo nome do local...)"}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -102,10 +88,10 @@ export default function Dashboard() {
                 </label>
                 <input
                   type="text"
-                  value={cityName}
-                  onChange={(e) => setCityName(e.target.value)}
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                  placeholder={location?.city || "Praia do Futuro"}
                   className="w-full bg-dark-bg border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-signal/50 focus:border-green-signal"
-                  placeholder="Praia do Futuro"
                 />
               </div>
 
@@ -133,7 +119,7 @@ export default function Dashboard() {
                 {data && (
                   <button
                     type="button"
-                    onClick={reset}
+                    onClick={() => { reset(); resetLocation(); }}
                     className="text-gray-500 hover:text-white transition-colors text-sm px-2"
                   >
                     Limpar
@@ -150,10 +136,10 @@ export default function Dashboard() {
 
             {data && <WeatherCard data={data} />}
 
-            {latitude && longitude && (
+            {location && (
               <WeatherMap
-                latitude={Number(latitude)}
-                longitude={Number(longitude)}
+                latitude={location.lat}
+                longitude={location.lon}
                 verdict={data?.verdict}
               />
             )}

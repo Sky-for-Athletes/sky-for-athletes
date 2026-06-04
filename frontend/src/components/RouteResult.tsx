@@ -1,0 +1,94 @@
+import { useEffect, useRef } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import type { RouteEvaluation } from "../services/weather.service";
+
+interface Props {
+  data: RouteEvaluation;
+  waypoints: [number, number][];
+}
+
+function getColor(score: number): string {
+  if (score >= 80) return "#22c55e";
+  if (score >= 60) return "#86ef4c";
+  if (score >= 40) return "#eab308";
+  return "#ef4444";
+}
+
+export default function RouteResult({ data, waypoints }: Props) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const instanceRef = useRef<L.Map | null>(null);
+
+  useEffect(() => {
+    if (mapRef.current && !instanceRef.current) {
+      const latlngs: [number, number][] = waypoints.map((p) => [p[1], p[0]]);
+      const bounds = L.latLngBounds(latlngs);
+
+      const map = L.map(mapRef.current).fitBounds(bounds, { padding: [30, 30] });
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(map);
+
+      data.segments.forEach((seg, i) => {
+        const startIdx = seg.index;
+        const endIdx = i < data.segments.length - 1 ? data.segments[i + 1].index : waypoints.length - 1;
+
+        const segLatLngs: [number, number][] = [];
+        for (let j = startIdx; j <= endIdx && j < waypoints.length; j++) {
+          segLatLngs.push([waypoints[j][1], waypoints[j][0]]);
+        }
+
+        if (segLatLngs.length >= 2) {
+          L.polyline(segLatLngs, {
+            color: getColor(seg.comfortScore),
+            weight: 5,
+            opacity: 0.9,
+          }).addTo(map);
+        }
+
+        const midIdx = Math.floor((startIdx + endIdx) / 2);
+        if (midIdx < waypoints.length) {
+          const mid = waypoints[midIdx];
+          L.circleMarker([mid[1], mid[0]], {
+            radius: 6,
+            fillColor: getColor(seg.comfortScore),
+            color: "#fff",
+            weight: 2,
+            fillOpacity: 1,
+          })
+            .addTo(map)
+            .bindTooltip(`${seg.comfortScore}`, { permanent: false, direction: "top" });
+        }
+      });
+
+      data.criticalSegments.forEach((cs) => {
+        const fromWaypoint = waypoints[cs.fromIndex];
+        const toWaypoint = waypoints[Math.min(cs.toIndex, waypoints.length - 1)];
+        if (fromWaypoint && toWaypoint) {
+          L.marker([fromWaypoint[1], fromWaypoint[0]], {
+            icon: L.divIcon({
+              className: "",
+              html: `<div class="flex items-center justify-center w-6 h-6 rounded-full bg-red-signal text-white text-xs font-bold">!</div>`,
+              iconSize: [24, 24],
+              iconAnchor: [12, 12],
+            }),
+          })
+            .addTo(map)
+            .bindPopup(`<b>Trecho crítico</b><br/>${cs.reason}<br/>Score médio: ${cs.avgScore}/100`);
+        }
+      });
+
+      instanceRef.current = map;
+    }
+
+    return () => {
+      if (instanceRef.current) {
+        instanceRef.current.remove();
+        instanceRef.current = null;
+      }
+    };
+  }, [data, waypoints]);
+
+  return <div ref={mapRef} className="w-full h-64 rounded-xl border border-gray-700 z-0" />;
+}

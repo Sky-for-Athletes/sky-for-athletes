@@ -5,8 +5,6 @@ import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
-import Settings from "./pages/Settings";
-import Reports from "./pages/Reports";
 
 function App() {
   return (
@@ -21,22 +19,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/reports"
-            element={
-              <ProtectedRoute>
-                <Reports />
               </ProtectedRoute>
             }
           />

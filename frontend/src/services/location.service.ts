@@ -4,20 +4,27 @@ export interface FavoriteLocation {
   _id: string;
   name: string;
   city?: string;
-  coordinates: {
+  coordinates?: {
     type: "Point";
     coordinates: [number, number];
   };
+  route?: [number, number][];
 }
 
-export interface SaveFavoriteData {
-  name: string;
-  city?: string;
-  coordinates: {
-    type: "Point";
-    coordinates: [number, number];
-  };
-}
+export type SaveFavoriteData =
+  | {
+      name: string;
+      city?: string;
+      coordinates: {
+        type: "Point";
+        coordinates: [number, number];
+      };
+    }
+  | {
+      name: string;
+      city?: string;
+      route: [number, number][];
+    };
 
 export interface SearchHistoryItem {
   _id: string;

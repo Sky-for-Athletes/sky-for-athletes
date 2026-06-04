@@ -58,14 +58,29 @@ export default function Dashboard() {
     [activity, evaluate, selectLocation]
   );
 
+  const handleSelectRouteFavorite = useCallback(
+    (waypoints: [number, number][], name: string) => {
+      setMode("route");
+      setRouteWaypoints(waypoints);
+      setCustomName(name);
+      if (activity) evaluateRoute(waypoints, activity);
+    },
+    [activity, evaluateRoute]
+  );
+
   const handleSaveFavorite = useCallback(async () => {
     if (mode === "point" && location) {
       await addFavorite({
         name: customName || location.city || `Local (${location.lat}, ${location.lon})`,
         coordinates: { type: "Point", coordinates: [location.lon, location.lat] },
       });
+    } else if (mode === "route" && routeWaypoints.length >= 2) {
+      await addFavorite({
+        name: customName || `Rota (${routeWaypoints.length} pontos)`,
+        route: routeWaypoints,
+      });
     }
-  }, [mode, location, customName, addFavorite]);
+  }, [mode, location, customName, routeWaypoints, addFavorite]);
 
   const canEvaluate = mode === "point"
     ? !!location && !!activity
@@ -167,6 +182,7 @@ export default function Dashboard() {
                 favorites={favorites}
                 loading={favLoading}
                 onSelect={handleSelectFavorite}
+                onSelectRoute={handleSelectRouteFavorite}
               />
 
               {/* Evaluate form */}
@@ -215,12 +231,12 @@ export default function Dashboard() {
                     {loading ? "Avaliando..." : "Avaliar"}
                   </button>
 
-                  {data && (
+                  {(data || routeData) && (
                     <button
                       type="button"
                       onClick={handleSaveFavorite}
                       className="bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-sm hover:bg-gray-600"
-                      title="Salvar local"
+                      title={mode === "route" ? "Salvar rota" : "Salvar local"}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
@@ -245,7 +261,7 @@ export default function Dashboard() {
 
               {(data || routeData) && (
                 <button
-                  onClick={() => { reset(); resetLocation(); setCustomName(""); }}
+                  onClick={() => { reset(); resetLocation(); setRouteWaypoints([]); setCustomName(""); }}
                   className="text-gray-500 hover:text-white text-sm w-full text-center"
                 >
                   Limpar

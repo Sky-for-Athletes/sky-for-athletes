@@ -18,6 +18,7 @@ function getColor(score: number): string {
 export default function RouteResult({ data, waypoints }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<L.Map | null>(null);
+  const roRef = useRef<ResizeObserver | null>(null);
 
   useEffect(() => {
     if (mapRef.current && !instanceRef.current) {
@@ -80,9 +81,15 @@ export default function RouteResult({ data, waypoints }: Props) {
       });
 
       instanceRef.current = map;
+
+      const ro = new ResizeObserver(() => map.invalidateSize());
+      ro.observe(mapRef.current);
+      roRef.current = ro;
     }
 
     return () => {
+      roRef.current?.disconnect();
+      roRef.current = null;
       if (instanceRef.current) {
         instanceRef.current.remove();
         instanceRef.current = null;
@@ -90,5 +97,5 @@ export default function RouteResult({ data, waypoints }: Props) {
     };
   }, [data, waypoints]);
 
-  return <div ref={mapRef} className="w-full h-64 rounded-xl border border-gray-700 z-0" />;
+  return <div ref={mapRef} className="w-full h-full rounded-xl border border-gray-700" />;
 }

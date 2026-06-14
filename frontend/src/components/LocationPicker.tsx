@@ -25,6 +25,7 @@ export default function LocationPicker({ onLocationSelect, selectedLat, selected
   const mapRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const roRef = useRef<ResizeObserver | null>(null);
 
   useEffect(() => {
     if (mapRef.current && !instanceRef.current) {
@@ -80,6 +81,10 @@ export default function LocationPicker({ onLocationSelect, selectedLat, selected
       });
 
       instanceRef.current = map;
+
+      const ro = new ResizeObserver(() => map.invalidateSize());
+      ro.observe(mapRef.current);
+      roRef.current = ro;
     }
 
     return () => {
@@ -88,6 +93,8 @@ export default function LocationPicker({ onLocationSelect, selectedLat, selected
         instanceRef.current = null;
         markerRef.current = null;
       }
+      roRef.current?.disconnect();
+      roRef.current = null;
     };
   }, []);
 
@@ -122,7 +129,7 @@ export default function LocationPicker({ onLocationSelect, selectedLat, selected
   return (
     <div
       ref={mapRef}
-      className="w-full h-64 rounded-xl border border-gray-700 z-0"
+      className="w-full h-full rounded-xl border border-gray-700"
     />
   );
 }

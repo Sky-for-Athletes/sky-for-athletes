@@ -89,7 +89,7 @@ export default function Dashboard() {
   return (
     <div className="h-screen bg-dark-bg flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-6 h-16 border-b border-gray-800 bg-surface/80 backdrop-blur-md shrink-0">
+      <div className="flex items-center gap-3 px-6 h-16 border-b border-gray-800 bg-surface/80 backdrop-blur-md shrink-0 z-50">
         <h1 className="text-xl font-bold text-white tracking-tight mr-2">SkyRunner</h1>
         <div className="flex-1 max-w-md">
           <LocationSearch onSelect={handleSearchSelect} />
@@ -124,38 +124,41 @@ export default function Dashboard() {
       <div className="flex flex-1 overflow-hidden">
         {/* Map */}
         <div className={`flex-1 relative ${showPanel ? "" : "w-full"}`}>
-          {mode === "point" ? (
-            <div className="absolute inset-0">
-              <div className="relative w-full h-full p-4">
+          {showSettings || showReports ? (
+            <div className="absolute inset-0 p-4 flex items-center justify-center text-gray-500 text-sm">
+              Modal aberto
+            </div>
+          ) : mode === "point" ? (
+            data && location ? (
+              <div key="weather-map" className="absolute inset-0 p-4">
+                <WeatherMap
+                  latitude={location.lat}
+                  longitude={location.lon}
+                  verdict={data.verdict}
+                />
+              </div>
+            ) : (
+              <div key="location-picker" className="absolute inset-0 p-4">
                 <LocationPicker
                   onLocationSelect={(lat, lon) => selectLocation(lat, lon)}
                   selectedLat={location?.lat}
                   selectedLon={location?.lon}
                 />
               </div>
-              {data && location && (
-                <div className="absolute inset-0 p-4 pointer-events-none">
-                  <div className="relative w-full h-full pointer-events-auto">
-                    <WeatherMap
-                      latitude={location.lat}
-                      longitude={location.lon}
-                      verdict={data?.verdict}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+            )
           ) : (
-            <div className="absolute inset-0 p-4">
-              {routeData && routeWaypoints.length >= 2 ? (
+            routeData && routeWaypoints.length >= 2 ? (
+              <div key="route-result" className="absolute inset-0 p-4">
                 <RouteResult data={routeData} waypoints={routeWaypoints} />
-              ) : (
+              </div>
+            ) : (
+              <div key="route-planner" className="absolute inset-0 p-4">
                 <RoutePlanner
                   onRouteChange={setRouteWaypoints}
                   waypoints={routeWaypoints}
                 />
-              )}
-            </div>
+              </div>
+            )
           )}
 
           {/* Toggle panel button */}

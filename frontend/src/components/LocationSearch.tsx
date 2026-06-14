@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 interface SearchResult {
   lat: number;
@@ -16,8 +17,10 @@ export default function LocationSearch({ onSelect }: Props) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const doSearch = useCallback(async (q: string) => {
     if (q.trim().length < 3) {
@@ -55,6 +58,16 @@ export default function LocationSearch({ onSelect }: Props) {
 
       setResults(mapped);
       setOpen(mapped.length > 0);
+
+      if (inputRef.current && mapped.length > 0) {
+        const rect = inputRef.current.getBoundingClientRect();
+        setDropdownStyle({
+          position: "fixed",
+          top: `${rect.bottom + 4}px`,
+          left: `${rect.left}px`,
+          width: `${rect.width}px`,
+        });
+      }
     } catch {
       setResults([]);
     } finally {
@@ -102,6 +115,7 @@ export default function LocationSearch({ onSelect }: Props) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
+          ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => handleChange(e.target.value)}
@@ -116,25 +130,30 @@ export default function LocationSearch({ onSelect }: Props) {
         )}
       </div>
 
-      {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-gray-700 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
-          {results.map((r, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => handleSelect(r)}
-              className="w-full text-left px-4 py-3 hover:bg-gray-700/50 transition-colors border-b border-gray-700/50 last:border-0"
-            >
-              <p className="text-white text-sm font-medium">
-                {r.city || r.displayName.split(",")[0]}
-              </p>
-              <p className="text-gray-500 text-xs truncate mt-0.5">
-                {r.displayName}
-              </p>
-            </button>
-          ))}
-        </div>
-      )}
+      {open &&
+        createPortal(
+          <div
+            style={dropdownStyle}
+            className="bg-surface border border-gray-700 rounded-lg shadow-xl z-[9999] max-h-60 overflow-y-auto"
+          >
+            {results.map((r, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => handleSelect(r)}
+                className="w-full text-left px-4 py-3 hover:bg-gray-700/50 transition-colors border-b border-gray-700/50 last:border-0"
+              >
+                <p className="text-white text-sm font-medium">
+                  {r.city || r.displayName.split(",")[0]}
+                </p>
+                <p className="text-gray-500 text-xs truncate mt-0.5">
+                  {r.displayName}
+                </p>
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

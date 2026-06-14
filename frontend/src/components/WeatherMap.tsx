@@ -25,6 +25,8 @@ function getMarkerColor(verdict?: string): string {
 export default function WeatherMap({ latitude, longitude, verdict }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.CircleMarker | null>(null);
+  const roRef = useRef<ResizeObserver | null>(null);
 
   useEffect(() => {
     if (mapRef.current && !instanceRef.current) {
@@ -36,7 +38,7 @@ export default function WeatherMap({ latitude, longitude, verdict }: Props) {
       }).addTo(map);
 
       const color = getMarkerColor(verdict);
-      L.circleMarker([latitude, longitude], {
+      const marker = L.circleMarker([latitude, longitude], {
         radius: 12,
         fillColor: color,
         color: "#fff",
@@ -46,15 +48,30 @@ export default function WeatherMap({ latitude, longitude, verdict }: Props) {
       }).addTo(map);
 
       instanceRef.current = map;
+      markerRef.current = marker;
+
+      const ro = new ResizeObserver(() => map.invalidateSize());
+      ro.observe(mapRef.current);
+      roRef.current = ro;
     }
 
     return () => {
+      roRef.current?.disconnect();
+      roRef.current = null;
       if (instanceRef.current) {
         instanceRef.current.remove();
         instanceRef.current = null;
+        markerRef.current = null;
       }
     };
   }, [latitude, longitude, verdict]);
 
-  return <div ref={mapRef} className="w-full h-64 rounded-xl border border-gray-700 z-0" />;
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.setLatLng([latitude, longitude]);
+      markerRef.current.setStyle({ fillColor: getMarkerColor(verdict) });
+    }
+  }, [latitude, longitude, verdict]);
+
+  return <div ref={mapRef} className="w-full h-full rounded-xl border border-gray-700" />;
 }

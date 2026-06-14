@@ -16,6 +16,7 @@ export default function RoutePlanner({ onRouteChange, waypoints }: Props) {
   const instanceRef = useRef<L.Map | null>(null);
   const polylineRef = useRef<L.Polyline | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
+  const roRef = useRef<ResizeObserver | null>(null);
 
   const [mode, setMode] = useState<PlannerMode>("draw");
   const [localPoints, setLocalPoints] = useState<[number, number][]>(waypoints || []);
@@ -110,7 +111,16 @@ export default function RoutePlanner({ onRouteChange, waypoints }: Props) {
       });
 
       instanceRef.current = map;
+
+      const ro = new ResizeObserver(() => map.invalidateSize());
+      ro.observe(mapRef.current);
+      roRef.current = ro;
     }
+
+    return () => {
+      roRef.current?.disconnect();
+      roRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -190,8 +200,8 @@ export default function RoutePlanner({ onRouteChange, waypoints }: Props) {
   }, [mode]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex gap-2">
+    <div className="flex flex-col h-full space-y-3">
+      <div className="flex gap-2 shrink-0">
         <button
           type="button"
           onClick={() => setMode("draw")}
@@ -217,7 +227,7 @@ export default function RoutePlanner({ onRouteChange, waypoints }: Props) {
       </div>
 
       {mode === "auto" && (
-        <div className="space-y-2">
+        <div className="space-y-2 shrink-0">
           <input
             type="text"
             value={origin}
@@ -243,10 +253,10 @@ export default function RoutePlanner({ onRouteChange, waypoints }: Props) {
         </div>
       )}
 
-      <div ref={mapRef} className="w-full h-64 rounded-xl border border-gray-700 z-0" />
+      <div ref={mapRef} className="w-full flex-1 min-h-0 rounded-xl border border-gray-700" />
 
       {mode === "draw" && (
-        <div className="flex gap-2 text-xs">
+        <div className="flex gap-2 text-xs shrink-0">
           <span className="text-gray-400">
             {localPoints.length === 0
               ? "Clique no mapa para adicionar pontos"

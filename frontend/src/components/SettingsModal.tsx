@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import * as userService from "../services/user.service";
-import { ACTIVITIES } from "../types/weather";
+import { ACTIVITIES, SPORT_DEFAULTS } from "../types/weather";
 
 interface SportState {
   name: string;
@@ -13,12 +13,7 @@ interface SportState {
 }
 
 const defaultPreferences: SportState[] = ACTIVITIES.map((act) => ({
-  name: act,
-  temperatureMin: 18,
-  temperatureMax: 28,
-  humidityMax: 80,
-  windMax: 20,
-  uvMax: 8,
+  ...SPORT_DEFAULTS[act],
 }));
 
 interface Props {

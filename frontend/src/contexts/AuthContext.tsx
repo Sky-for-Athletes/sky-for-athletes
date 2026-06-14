@@ -8,12 +8,29 @@ interface User {
   role: string;
 }
 
+interface RegisterOptions {
+  email: string;
+  username: string;
+  password: string;
+  sports?: string[];
+  preferencesMode?: "default" | "custom";
+  customThresholds?: Array<{
+    name: string;
+    temperatureMin: number;
+    temperatureMax: number;
+    humidityMax: number;
+    windMax: number;
+    uvMax: number;
+  }>;
+  favoriteLocations?: Array<{ name: string }>;
+}
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, username: string, password: string) => Promise<void>;
+  register: (opts: RegisterOptions) => Promise<void>;
   logout: () => void;
 }
 
@@ -50,8 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const register = useCallback(
-    async (email: string, username: string, password: string) => {
-      const data = await authService.register({ email, username, password });
+    async (opts: RegisterOptions) => {
+      const data = await authService.register(opts);
       localStorage.setItem("@skyrunner:token", data.token);
       setToken(data.token);
       localStorage.setItem("@skyrunner:user", JSON.stringify(data.user));

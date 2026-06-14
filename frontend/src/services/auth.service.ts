@@ -14,6 +14,17 @@ export interface RegisterRequest {
   email: string;
   username: string;
   password: string;
+  sports?: string[];
+  preferencesMode?: "default" | "custom";
+  customThresholds?: Array<{
+    name: string;
+    temperatureMin: number;
+    temperatureMax: number;
+    humidityMax: number;
+    windMax: number;
+    uvMax: number;
+  }>;
+  favoriteLocations?: Array<{ name: string }>;
 }
 
 export interface RegisterResponse {

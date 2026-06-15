@@ -5,7 +5,6 @@ export interface IUserPreferences {
     temperatureMax: number;
     humidityMax: number;
     windMax: number;
-    uvMax: number;
   }>;
 }
 

@@ -21,6 +21,12 @@ export function useFavorites() {
     fetchFavorites();
   }, [fetchFavorites]);
 
+  useEffect(() => {
+    function onFocus() { fetchFavorites(); }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [fetchFavorites]);
+
   const addFavorite = useCallback(
     async (data: locationService.SaveFavoriteData) => {
       const created = await locationService.saveFavorite(data);

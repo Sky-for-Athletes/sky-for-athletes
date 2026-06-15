@@ -10,7 +10,6 @@ interface SportState {
   temperatureMax: number;
   humidityMax: number;
   windMax: number;
-  uvMax: number;
 }
 
 const defaultPreferences: SportState[] = ACTIVITIES.map((act) => ({
@@ -19,7 +18,6 @@ const defaultPreferences: SportState[] = ACTIVITIES.map((act) => ({
   temperatureMax: 28,
   humidityMax: 80,
   windMax: 20,
-  uvMax: 8,
 }));
 
 export default function Settings() {

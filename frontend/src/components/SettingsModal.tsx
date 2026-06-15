@@ -9,10 +9,10 @@ interface SportState {
   temperatureMax: number;
   humidityMax: number;
   windMax: number;
-  uvMax: number;
 }
 
 const defaultPreferences: SportState[] = ACTIVITIES.map((act) => ({
+  name: act,
   ...SPORT_DEFAULTS[act],
 }));
 
@@ -26,7 +26,6 @@ const fieldLabels: Record<string, string> = {
   temperatureMax: "Temp. Máx (°C)",
   humidityMax: "Umidade Máx (%)",
   windMax: "Vento Máx (km/h)",
-  uvMax: "UV Máx",
 };
 
 export default function SettingsModal({ open, onClose }: Props) {

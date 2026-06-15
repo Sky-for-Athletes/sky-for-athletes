@@ -11,7 +11,6 @@ const fieldLabels: Record<string, string> = {
   temperatureMax: "Temp. Máx (°C)",
   humidityMax: "Umidade Máx (%)",
   windMax: "Vento Máx (km/h)",
-  uvMax: "UV Máx",
 };
 
 export default function PreferenceForm({ sport, index, onChange }: Props) {

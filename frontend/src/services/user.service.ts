@@ -15,7 +15,6 @@ export interface SportPreference {
   temperatureMax: number;
   humidityMax: number;
   windMax: number;
-  uvMax: number;
 }
 
 export interface UserPreferences {

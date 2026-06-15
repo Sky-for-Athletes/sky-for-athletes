@@ -53,24 +53,39 @@ export default function FavoriteLocations({ favorites, loading, onSelect, onSele
           }
 
           const coords = fav.coordinates?.coordinates;
-          if (!coords) return null;
-          const [lon, lat] = coords;
+          if (coords) {
+            const [lon, lat] = coords;
+            return (
+              <button
+                key={fav._id}
+                onClick={() => onSelect(lat, lon, fav.name)}
+                className="w-full text-left bg-dark-bg hover:bg-gray-700/50 rounded-lg px-3 py-2 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#22c55e">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                  </svg>
+                  <p className="text-white text-sm font-medium">{fav.name}</p>
+                </div>
+                {fav.city && (
+                  <p className="text-gray-400 text-xs ml-6">{fav.city}</p>
+                )}
+              </button>
+            );
+          }
+
           return (
-            <button
-              key={fav._id}
-              onClick={() => onSelect(lat, lon, fav.name)}
-              className="w-full text-left bg-dark-bg hover:bg-gray-700/50 rounded-lg px-3 py-2 transition-colors"
-            >
+            <div key={fav._id} className="bg-dark-bg rounded-lg px-3 py-2">
               <div className="flex items-center gap-2">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="#22c55e">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
                 </svg>
                 <p className="text-white text-sm font-medium">{fav.name}</p>
               </div>
               {fav.city && (
-                <p className="text-gray-400 text-xs ml-6">{fav.city}</p>
+                <p className="text-gray-500 text-xs ml-6">{fav.city} <span className="text-gray-600">(sem coordenadas)</span></p>
               )}
-            </button>
+            </div>
           );
         })}
       </div>

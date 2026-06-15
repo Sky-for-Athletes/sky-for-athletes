@@ -20,9 +20,8 @@ interface RegisterOptions {
     temperatureMax: number;
     humidityMax: number;
     windMax: number;
-    uvMax: number;
   }>;
-  favoriteLocations?: Array<{ name: string }>;
+  favoriteLocations?: Array<{ name: string; coordinates?: { lat: number; lon: number } }>;
 }
 
 interface AuthContextType {

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { ACTIVITIES, SPORT_DEFAULTS, type ISportPreference } from "../types/weather";
@@ -18,7 +19,6 @@ const fieldLabels: Record<string, string> = {
   temperatureMax: "Temp. Máx (°C)",
   humidityMax: "Umidade Máx (%)",
   windMax: "Vento Máx (km/h)",
-  uvMax: "UV Máx",
 };
 
 export default function Signup() {
@@ -33,8 +33,68 @@ export default function Signup() {
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
   const [preferencesMode, setPreferencesMode] = useState<"default" | "custom">("default");
   const [customThresholds, setCustomThresholds] = useState<ISportPreference[]>([]);
-  const [favoriteLocations, setFavoriteLocations] = useState<string[]>([]);
-  const [locationInput, setLocationInput] = useState("");
+  // Favorite places search
+  const [favoriteLocations, setFavoriteLocations] = useState<Array<{ name: string; lat?: number; lon?: number }>>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Array<{ displayName: string; city: string; lat: number; lon: number }>>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
+  const [searchDropdownStyle, setSearchDropdownStyle] = useState<React.CSSProperties>({});
+
+  const doSearch = useCallback(async (q: string) => {
+    if (q.trim().length < 3) {
+      setSearchResults([]);
+      setSearchOpen(false);
+      return;
+    }
+    setSearching(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&addressdetails=1`,
+        { headers: { "Accept-Language": "pt" } }
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const mapped = data.map((item: any) => {
+        const addr = item.address || {};
+        const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || addr.state || "";
+        return { displayName: item.display_name, city, lat: parseFloat(item.lat), lon: parseFloat(item.lon) };
+      });
+      setSearchResults(mapped);
+      setSearchOpen(mapped.length > 0);
+      if (searchInputRef.current && mapped.length > 0) {
+        const rect = searchInputRef.current.getBoundingClientRect();
+        setSearchDropdownStyle({
+          position: "fixed",
+          top: `${rect.bottom + 4}px`,
+          left: `${rect.left}px`,
+          width: `${rect.width}px`,
+        });
+      }
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, []);
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -50,16 +110,13 @@ export default function Signup() {
     );
   }
 
-  function addLocation() {
-    const name = locationInput.trim();
-    if (name && !favoriteLocations.includes(name)) {
-      setFavoriteLocations((prev) => [...prev, name]);
-      setLocationInput("");
+  function selectSearchResult(name: string, lat?: number, lon?: number) {
+    if (name && !favoriteLocations.some((f) => f.name === name)) {
+      setFavoriteLocations((prev) => [...prev, { name, lat, lon }]);
     }
-  }
-
-  function removeLocation(name: string) {
-    setFavoriteLocations((prev) => prev.filter((l) => l !== name));
+    setSearchQuery("");
+    setSearchResults([]);
+    setSearchOpen(false);
   }
 
   function canGoNext(): boolean {
@@ -109,6 +166,7 @@ export default function Signup() {
     }
 
     setLoading(true);
+    console.log("[Signup] Sending register with favoriteLocations:", JSON.stringify(favoriteLocations));
     try {
       await register({
         email,
@@ -118,7 +176,10 @@ export default function Signup() {
         preferencesMode,
         customThresholds: preferencesMode === "custom" ? customThresholds : undefined,
         favoriteLocations: favoriteLocations.length > 0
-          ? favoriteLocations.map((name) => ({ name }))
+          ? favoriteLocations.map((loc) => ({
+              name: loc.name,
+              ...(loc.lat !== undefined && loc.lon !== undefined ? { coordinates: { lat: loc.lat, lon: loc.lon } } : {}),
+            }))
           : undefined,
       });
       navigate("/dashboard");
@@ -292,21 +353,60 @@ export default function Signup() {
           {step === 3 && (
             <div className="space-y-4">
               <p className="text-gray-400 text-sm">Adicione locais favoritos <span className="text-gray-600">(opcional)</span></p>
-              <div className="flex gap-2">
-                <input type="text" value={locationInput}
-                  onChange={(e) => setLocationInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLocation(); } }}
-                  placeholder="Digite o nome de uma cidade..."
-                  className="flex-1 bg-surface border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-signal/50" />
-                <button type="button" onClick={addLocation}
-                  className="bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-sm hover:bg-gray-600 transition-colors">Adicionar</button>
+              <div ref={searchWrapperRef} className="relative">
+                <div className="relative">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input ref={searchInputRef} type="text" value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+                      searchTimerRef.current = setTimeout(() => doSearch(e.target.value), 400);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && searchQuery.trim()) {
+                        e.preventDefault();
+                        if (searchResults.length > 0) {
+                          const first = searchResults[0];
+                          selectSearchResult(first.city || searchQuery.trim(), first.lat, first.lon);
+                        } else {
+                          selectSearchResult(searchQuery.trim());
+                        }
+                      }
+                    }}
+                    onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
+                    placeholder="Pesquisar ou digitar cidade... (Enter para adicionar)"
+                    className="w-full bg-dark-bg border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-signal/50" />
+                  {searching && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="w-4 h-4 border-2 border-green-signal border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
+                </div>
+                {searchOpen && createPortal(
+                  <div style={searchDropdownStyle}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="bg-surface border border-gray-700 rounded-lg shadow-xl z-[9999] max-h-60 overflow-y-auto"
+                  >
+                    {searchResults.map((r, i) => (
+                      <button key={i} type="button" onClick={() => selectSearchResult(r.city || r.displayName.split(",")[0], r.lat, r.lon)}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-700/50 transition-colors border-b border-gray-700/50 last:border-0"
+                      >
+                        <p className="text-white text-sm font-medium">{r.city || r.displayName.split(",")[0]}</p>
+                        <p className="text-gray-500 text-xs truncate mt-0.5">{r.displayName}</p>
+                      </button>
+                    ))}
+                  </div>,
+                  document.body
+                )}
               </div>
               {favoriteLocations.length > 0 && (
                 <div className="space-y-2">
-                  {favoriteLocations.map((name) => (
-                    <div key={name} className="flex items-center justify-between bg-surface rounded-lg px-4 py-2.5">
-                      <span className="text-white text-sm">{name}</span>
-                      <button type="button" onClick={() => removeLocation(name)}
+                  {favoriteLocations.map((loc) => (
+                    <div key={loc.name} className="flex items-center justify-between bg-surface rounded-lg px-4 py-2.5">
+                      <span className="text-white text-sm">{loc.name}{loc.lat !== undefined && loc.lon !== undefined ? ` (${loc.lat.toFixed(3)}, ${loc.lon.toFixed(3)})` : " (sem coordenadas)"}</span>
+                      <button type="button" onClick={() => setFavoriteLocations((prev) => prev.filter((l) => l.name !== loc.name))}
                         className="text-gray-500 hover:text-red-signal text-sm transition-colors">Remover</button>
                     </div>
                   ))}

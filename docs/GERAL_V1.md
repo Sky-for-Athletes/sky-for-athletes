@@ -1,147 +1,91 @@
 
 # SkyRunner Analytics — Documentação do Sistema
 
-Este documento apresenta a especificação funcional, o projeto arquitetural e a organização estrutural do projeto **SkyRunner Analytics**, desenvolvido para a disciplina de Desenvolvimento de Aplicações Distribuídas (DAD) do curso de Engenharia de Computação da Universidade Federal do Ceará (UFC).
+Este documento apresenta a especificação funcional e o projeto arquitetural do projeto **SkyRunner Analytics**, desenvolvido para a disciplina de Desenvolvimento de Aplicações Distribuídas (DAD) do curso de Engenharia de Computação da Universidade Federal do Ceará (UFC).
+
+> **Nota:** este documento foi atualizado para refletir a arquitetura atualmente em uso. A versão original descrevia um desenho baseado em AWS (S3/CloudFront/EC2/Lambda/EventBridge) que foi abandonado — ver seção 4.
 
 ---
 
 ## 1. Visão Geral do Projeto
 
-O **SkyRunner Analytics** é um sistema distribuído de suporte à decisão projetado para atletas de atividades ao ar livre (corrida, ciclismo, trilhas). Diferente de sistemas meteorológicos tradicionais que apenas exibem dados brutos, esta plataforma atua correlacionando variáveis ambientais em tempo real com **limiares dinâmicos de conforto e segurança** parametrizados individualmente pelos usuários.
+O **SkyRunner Analytics** é um sistema de suporte à decisão projetado para atletas de atividades ao ar livre (corrida, ciclismo, calistenia, surf, kitesurf). Diferente de sistemas meteorológicos tradicionais que apenas exibem dados brutos, esta plataforma atua correlacionando variáveis ambientais em tempo real com **limiares dinâmicos de conforto e segurança** parametrizados individualmente pelos usuários.
 
-O objetivo do sistema é converter dados meteorológicos complexos em respostas binárias ou qualitativas diretas (*"Sinal Verde/Amarelo/Vermelho"*) para a prática esportiva, mitigando riscos de estresse térmico, acidentes por rajadas de vento ou exposição a índices críticos de radiação UV.
+O objetivo do sistema é converter dados meteorológicos complexos em respostas qualitativas diretas (*"Recomendado / Atenção / Não Recomendado"*) para a prática esportiva, considerando temperatura, umidade, vento, heat index e wind chill.
 
 ---
 
 ## 2. Cenário de Uso (Caso de Uso Principal)
 
-1. **Parametrização:** Um ciclista se cadastra na plataforma e define suas restrições de treino: *Velocidade máxima do vento: 18km/h; Temperatura máxima: 32°C; Probabilidade de chuva: < 20%*.
-2. **Análise de Viabilidade:** Ao planejar um treino para o dia seguinte, o usuário consulta o mapa interativo. O sistema busca a previsão local e aplica o motor de regras.
-3. **Decisão Automatizada:** Se a previsão indicar ventos de 22km/h para o horário escolhido, a interface exibirá um alerta visual vermelho ("Não Recomendado") especificamente para a modalidade de ciclismo desse usuário, sugerindo horários alternativos onde os limites de segurança não sejam violados.
+1. **Parametrização:** Um ciclista se cadastra na plataforma e define suas restrições de treino (temperatura, umidade e vento máximos por modalidade), com a opção de usar limites padrão por esporte.
+2. **Análise de Viabilidade:** Ao planejar um treino, o usuário consulta o mapa interativo e seleciona um ponto ou desenha uma rota. O sistema busca a previsão local (via Open-Meteo) e aplica o motor de pontuação de conforto.
+3. **Decisão Automatizada:** A interface exibe um veredito (Excelente/Bom/Moderado/Ruim) e o score de conforto para a modalidade escolhida, coloridos no mapa por variável (temperatura, umidade, vento, heat index, wind chill ou conforto).
 
 ---
 
 ## 3. Requisitos Funcionais
 
-*   **RF01 - Gestão de Perfis e Autenticação:** Cadastro, login e persistência segura de usuários e suas respectivas sessões.
-*   **RF02 - Configuração de Limiares Esportivos:** Interface para o usuário definir limites personalizados de temperatura, umidade, vento e chuva por modalidade.
-*   **RF03 - Painel Geográfico Interativo:** Visualização cartográfica com marcadores e mapas de calor coloridos indicando a adequação de locais favoritos.
-*   **RF04 - Sincronização Meteorológica Autônoma:** Coleta periódica automatizada de dados climáticos via integração com APIs públicas externas.
-*   **RF05 - Geração de Relatórios em Background (Blobs):** Compilação assíncrona de relatórios semanais agregados de condições climáticas em formato PDF para download.
+* **RF01 - Gestão de Perfis e Autenticação:** Cadastro, login e persistência de usuários via JWT.
+* **RF02 - Configuração de Limiares Esportivos:** Interface para o usuário definir limites personalizados de temperatura, umidade e vento por modalidade.
+* **RF03 - Painel Geográfico Interativo:** Visualização cartográfica (Leaflet) com locais favoritos, busca de endereços e mapa colorido por variável climática.
+* **RF04 - Avaliação de Pontos e Rotas:** Avaliação de um ponto único ou de uma rota (com trechos críticos identificados) para uma modalidade esportiva.
+* **RF05 - Geração de Relatórios:** Geração de relatórios (semanal/mensal/personalizado) a partir do histórico de avaliações.
+* **RF06 - Histórico de Buscas e Favoritos:** Persistência de locais favoritos (pontos e rotas) e histórico de buscas por usuário.
 
 ---
 
-## 4. Arquitetura de Infraestrutura AWS (Sistemas Distribuídos)
+## 4. Arquitetura Atual
 
-A aplicação adota uma arquitetura totalmente desacoplada e distribuída na **Amazon Web Services (AWS)**, segregando armazenamento de arquivos estáticos, lógica de microsserviços, persistência estruturada e computação orientada a eventos (*Serverless*).
-
-
-```
+A aplicação é composta por dois projetos independentes que rodam localmente (sem dependência de infraestrutura cloud):
 
 ```
-                  +-----------------------------+
-                  |     Usuário (Navegador)     |
-                  +--------------+--------------+
-                                 |
-          +----------------------+----------------------+
-          | (Acesso HTTP/S)                             | (Requisições REST API)
-          v                                             v
-
-```
-
-+-----------+-----------+                     +-----------+-----------+
-|    Amazon CloudFront  |                     |  EC2 Instância 01     |
-+-----------+-----------+                     |  (Node.js / Express)  |
-|                                 +-----+-----+-----+-----+
-v                                       |     |     |
-+-----------+-----------+                           |     |     +--------+
-|  Amazon S3 Bucket     |                           |     |              | (AWS SDK)
-|  (Static Web Hosting) |                           |     |              v
-+-----------------------+                           |     |   +----------+----------+
-|     |   |  Amazon S3 Bucket   |
-+-----------------------------------------+     |   |  (PDF Blobs / Logs) |
-| (Mongoose Connection)                         |   +---------------------+
-v                                               v
-+---------+-----------+                       +-----------+-----------+
-|  EC2 Instância 02   | <---------------------+      AWS Lambda       |
-|  (MongoDB Server)   |  (Atualização Ingest) |  (Cron EventBridge)   |
-+---------------------+                       +-----------+-----------+
-|
-v
-+-----------+-----------+
-| External Weather API  |
-+-----------------------+
-
+┌─────────────────────────┐        /api (proxy Vite)        ┌──────────────────────────┐
+│  sky-for-athletes/       │ ─────────────────────────────▶ │  SportsWeather-Back/      │
+│  frontend (React + Vite) │ ◀───────────────────────────── │  API (Express + TS)       │
+└─────────────────────────┘             JSON                └──────────────┬───────────┘
+                                                                             │ Mongoose
+                                                                             ▼
+                                                              ┌──────────────────────────┐
+                                                              │  MongoDB 8 (Docker)       │
+                                                              └──────────────┬───────────┘
+                                                                             │
+                                                                             ▼
+                                                              ┌──────────────────────────┐
+                                                              │  Open-Meteo API           │
+                                                              │  (sem API key)            │
+                                                              └──────────────────────────┘
 ```
 
 ### Detalhamento dos Componentes
 
-| Componente | Tecnologia Utilizada | Justificativa Arquitetural |
+| Componente | Tecnologia | Observação |
 | :--- | :--- | :--- |
-| **Frontend Hosting** | **Amazon S3** | Armazena o *build* estático do React de forma agnóstica e barata, sem consumir processamento de servidores de aplicação. |
-| **Edge Delivery (CDN)** | **Amazon CloudFront** | Distribui globalmente os arquivos do front por meio de réplicas em *Edge Locations*, provê cache, reduz latência de entrega e injeta criptografia SSL (HTTPS). |
-| **Servidor de Aplicação**| **Amazon EC2 (Instância 01)**| Instância Linux rodando o ambiente Node.js. Isola a lógica de rotas, processamento de regras do motor e orquestração de microsserviços. |
-| **Camada de Dados** | **Amazon EC2 (Instância 02)**| Servidor dedicado para o ecossistema MongoDB. Garante o isolamento físico dos dados de usuários, índices e regras estruturadas, respondendo apenas a requisições internas da rede. |
-| **Processamento Serverless**| **AWS Lambda** | Função assíncrona ativada por tempo via *Amazon EventBridge*. Isola o fluxo pesado de ingestão e normalização da API externa de clima, eliminando processos concorrentes concorrendo por recursos na EC2 principal. |
-| **Armazenamento de Objetos**| **Amazon S3 (Blobs) + SDK**| Utilizado para salvar os relatórios em PDF de forma desacoplada. O backend manipula esse repositório de arquivos usando a biblioteca nativa `@aws-sdk/client-s3`, salvando apenas referências textuais (URLs) no banco de dados. |
-| **Políticas de Segurança** | **AWS IAM Roles** | Camada de governança que atribui permissões granulares de execução às máquinas virtuais e lambdas sem a necessidade de expor chaves ou credenciais estáticas dentro do código-fonte. |
+| **Frontend** | React 19 + Vite + TailwindCSS + Leaflet | Em `sky-for-athletes/frontend/`. Dev server na porta 5173, proxy `/api` → `localhost:8080`. |
+| **Backend / API** | Express 5 + TypeScript + Mongoose | Em `SportsWeather-Back/` (repositório separado). Roda na porta 8080. |
+| **Banco de dados** | MongoDB 8 via Docker Compose | Definido em `SportsWeather-Back/SportsWeather-Database/`. |
+| **Provedor de clima** | Open-Meteo (gratuito, sem API key) | Implementado em `SportsWeather-Back/src/services/openmeteo.service.ts`. |
+
+`sky-for-athletes/backend` e `sky-for-athletes/lambda` (desenho anterior baseado em AWS) foram removidos — a API ativa é a `SportsWeather-Back`.
 
 ---
 
-## 5. Dinâmica e Fluxos de Dados do Sistema
+## 5. Fluxos de Dados do Sistema
 
-O sistema opera sob três fluxos distribuídos assíncronos principais:
+### Fluxo A: Avaliação de Ponto/Rota (Síncrono)
+1. O usuário seleciona um ponto ou desenha uma rota no mapa do frontend.
+2. O frontend chama `GET /api/weather/evaluate` (ponto) ou `POST /api/weather/evaluate-route` (rota) na API.
+3. A API busca a previsão atual no Open-Meteo, calcula heat index, wind chill e o score de conforto para a modalidade, e responde com o veredito.
 
-### Fluxo A: Ingestão de Dados Meteorológicos (Background)
-1. O **Amazon EventBridge** dispara um evento de gatilho a cada 60 minutos.
-2. A **AWS Lambda** é inicializada, consome os dados em tempo real da *OpenWeather API*, calcula os índices esportivos básicos baseados em geolocalização e grava os registros normalizados diretamente no **MongoDB (EC2-02)**.
-3. A Lambda encerra sua execução, retornando ao estado dormente.
+### Fluxo B: Favoritos e Histórico
+1. O usuário salva um local ou rota como favorito (`POST /api/locations/favorites`).
+2. Buscas de endereço (Nominatim) e seleções de favoritos são registradas no histórico de busca do usuário.
 
-### Fluxo B: Consumo de Dados pelo Usuário (Síncrono)
-1. O usuário requisita o dashboard a partir do cliente (servido pelo **CloudFront/S3**).
-2. O frontend dispara uma requisição HTTP REST para o **Backend (EC2-01)**.
-3. O Backend consulta os limiares do usuário logado e os dados meteorológicos atuais no **MongoDB (EC2-02)**, executa o cruzamento de dados e responde ao cliente com a avaliação final processada.
-
-### Fluxo C: Geração de Relatórios de Mídia (Blob via SDK)
-1. O usuário solicita a exportação do histórico climático da semana.
-2. A API em Node.js compila os dados históricos em um arquivo binário binário (PDF) em memória.
-3. Através do método `PutObjectCommand` do **AWS SDK**, o backend envia o PDF para o bucket de armazenamento de Blobs no **Amazon S3**.
-4. O S3 retorna o sucesso da operação e o backend disponibiliza uma URL segura para o usuário realizar o download do arquivo de forma direta.
+### Fluxo C: Geração de Relatórios
+1. O usuário solicita um relatório (`POST /api/reports/generate`).
+2. A API compila os dados e disponibiliza o relatório para download (`GET /api/reports/download`).
 
 ---
 
-## 6. Organização do Repositório (Monorepo)
+## 6. Organização do Repositório
 
-O projeto adota uma estrutura unificada de controle de versão para facilitar a interoperabilidade de tipos, documentação comum e deploy automatizado:
-
-```text
-skyrunner-analytics/
-├── frontend/            # Single Page Application desenvolvida em React.js + TypeScript
-│   ├── src/             # Componentes, rotas, hooks e integração com mapas (Leaflet)
-│   ├── public/          # Ativos e ícones estáticos locais
-│   └── package.json     # Scripts de build do frontend (Vite)
-├── backend/             # API RESTful desenvolvida em Node.js + Express + TypeScript
-│   ├── src/             # Controllers, Middlewares de Auth, Schemas de dados e Serviços
-│   │   └── services/    # Módulos de integração usando o AWS SDK Client S3
-│   └── package.json     # Gerenciamento de dependências do servidor de aplicação
-├── lambda/              # Script serverless autônomo em Node.js para tarefas em background
-│   ├── index.ts         # Ponto de entrada do script de sincronização cronometrada
-│   └── package.json     # Dependências exclusivas do worker de processamento
-├── infra/               # Esquemas de arquitetura, políticas IAM e configurações cloud
-├── .gitignore           # Regras globais recursivas de exclusão do Git
-└── README.md            # Guia de documentação principal do projeto
-
-```
-
----
-
-## 7. Estratégia de Segurança e Isolamento de Rede
-
-Para garantir a conformidade com as diretrizes de desenvolvimento seguro e sistemas distribuídos, a comunicação interna obedecerá as seguintes regras de *Security Groups*:
-
-* A **Instância de Banco de Dados (EC2-02)** fechará sua porta de conexão (ex: `27017`) para a internet pública, aceitando conexões exclusivamente originadas pelo IP privado da **Instância de API (EC2-01)** e da **AWS Lambda**.
-* A comunicação com o bucket de blobs do S3 não usará credenciais estáticas de usuário (`AWS_ACCESS_KEY_ID`); em vez disso, será autorizada dinamicamente por uma **IAM Instance Profile** vinculada nativamente ao hardware virtual da EC2 de aplicação.
-
-```
-
-```
+Ver `sky-for-athletes/docs/ORGANIZACAO.md` para a estrutura de diretórios do frontend, e `SportsWeather-Back/AGENTS.md` para a estrutura completa da API.

@@ -29,6 +29,17 @@ export const ACTIVITIES = [
 
 export type Activity = (typeof ACTIVITIES)[number];
 
+export type VariableKey = "temperature" | "humidity" | "windSpeed" | "heatIndex" | "windChill" | "comfortScore";
+
+export const VARIABLE_LABELS: Record<VariableKey, string> = {
+  temperature: "Temperatura",
+  humidity: "Umidade",
+  windSpeed: "Vento",
+  heatIndex: "Heat Index",
+  windChill: "Wind Chill",
+  comfortScore: "Conforto",
+};
+
 export const SPORT_DEFAULTS: Record<string, Omit<ISportPreference, "name">> = {
   running: { temperatureMin: 10, temperatureMax: 30, humidityMax: 85, windMax: 25 },
   cycling: { temperatureMin: 12, temperatureMax: 35, humidityMax: 75, windMax: 30 },

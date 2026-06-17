@@ -40,11 +40,23 @@ export async function getFavorites() {
   return response.data;
 }
 
+export async function getNearbyFavorites(lat: number, lon: number, maxDistance = 50000) {
+  const response = await api.get<FavoriteLocation[]>("/locations/favorites/near", {
+    params: { lat, lon, maxDistance },
+  });
+  return response.data;
+}
+
 export async function saveFavorite(data: SaveFavoriteData) {
   const response = await api.post<FavoriteLocation>(
     "/locations/favorites",
     data
   );
+  return response.data;
+}
+
+export async function deleteFavorite(id: string) {
+  const response = await api.delete(`/locations/favorites/${id}`);
   return response.data;
 }
 

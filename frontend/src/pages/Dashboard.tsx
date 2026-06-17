@@ -9,13 +9,17 @@ import WeatherMap from "../components/WeatherMap";
 import RouteResult from "../components/RouteResult";
 import SportSelector from "../components/SportSelector";
 import FavoriteLocations from "../components/FavoriteLocations";
+import VariableToggle from "../components/VariableToggle";
+import SearchHistory from "../components/SearchHistory";
 import SettingsModal from "../components/SettingsModal";
 import ReportsModal from "../components/ReportsModal";
 import { useWeather } from "../hooks/useWeather";
 import { useFavorites } from "../hooks/useFavorites";
+import { useSearchHistory } from "../hooks/useSearchHistory";
 import { useLocationPicker } from "../hooks/useLocationPicker";
 import { useAuth } from "../hooks/useAuth";
 import type { RouteEvaluation } from "../services/weather.service";
+import type { VariableKey } from "../types/weather";
 
 type Mode = "point" | "route";
 
@@ -23,13 +27,15 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { data, routeData, loading, error, evaluate, evaluateRoute, reset } = useWeather();
-  const { favorites, loading: favLoading, addFavorite } = useFavorites();
+  const { favorites, loading: favLoading, addFavorite, removeFavorite } = useFavorites();
+  const { history: searchHistory, loading: histLoading } = useSearchHistory();
   const { location, resolving, selectLocation, reset: resetLocation } = useLocationPicker();
 
   const [mode, setMode] = useState<Mode>("point");
   const [activity, setActivity] = useState("");
   const [customName, setCustomName] = useState("");
   const [routeWaypoints, setRouteWaypoints] = useState<[number, number][]>([]);
+  const [selectedVariable, setSelectedVariable] = useState<VariableKey>("comfortScore");
   const [showSettings, setShowSettings] = useState(false);
   const [showReports, setShowReports] = useState(false);
   const [showPanel, setShowPanel] = useState(true);
@@ -149,7 +155,8 @@ export default function Dashboard() {
                 <WeatherMap
                   latitude={location.lat}
                   longitude={location.lon}
-                  verdict={data.verdict}
+                  variableKey={selectedVariable}
+                  variableValue={(data as any)[selectedVariable]}
                 />
               </div>
             ) : (
@@ -164,7 +171,7 @@ export default function Dashboard() {
           ) : (
             routeData && routeWaypoints.length >= 2 ? (
               <div key="route-result" className="absolute inset-0 p-4">
-                <RouteResult data={routeData} waypoints={routeWaypoints} />
+                <RouteResult data={routeData} waypoints={routeWaypoints} variableKey={selectedVariable} />
               </div>
             ) : (
               <div key="route-planner" className="absolute inset-0 p-4">
@@ -195,13 +202,29 @@ export default function Dashboard() {
         {showPanel && (
           <div className="w-80 border-l border-gray-800 bg-surface/50 overflow-y-auto shrink-0">
             <div className="p-4 space-y-5">
+              {/* History */}
+              <SearchHistory
+                history={searchHistory}
+                loading={histLoading}
+                onSelect={handleSearchSelect}
+              />
+
               {/* Favorites */}
               <FavoriteLocations
                 favorites={favorites}
                 loading={favLoading}
                 onSelect={handleSelectFavorite}
                 onSelectRoute={handleSelectRouteFavorite}
+                onDelete={removeFavorite}
               />
+
+              {/* Variable toggle */}
+              {(data || routeData) && (
+                <div className="space-y-1.5">
+                  <p className="text-gray-500 text-xs font-medium">Colorir mapa por</p>
+                  <VariableToggle value={selectedVariable} onChange={setSelectedVariable} />
+                </div>
+              )}
 
               {/* Evaluate form */}
               <form onSubmit={handleEvaluate} className="space-y-3">
@@ -365,7 +388,7 @@ function RouteResultCard({ data }: { data: RouteEvaluation }) {
       )}
 
       <p className="text-gray-500 text-xs">
-        {data.segments.length} pontos avaliados ao longo da rota
+        {data.segments.length} pontos avaliados{data.totalDistance ? ` · ${data.totalDistance.toFixed(1)} km` : ""} ao longo da rota
       </p>
     </div>
   );

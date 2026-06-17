@@ -1,28 +1,24 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import type { VariableKey } from "../types/weather";
+import { getVariableColor } from "../utils/colorScale";
 
 interface Props {
   latitude: number;
   longitude: number;
-  verdict?: string;
+  variableKey?: VariableKey;
+  variableValue?: number;
 }
 
-function getMarkerColor(verdict?: string): string {
-  switch (verdict) {
-    case "EXCELLENT":
-    case "GOOD":
-      return "#22c55e";
-    case "MODERATE":
-      return "#eab308";
-    case "POOR":
-      return "#ef4444";
-    default:
-      return "#3b82f6";
+function getMarkerColor(variableKey?: VariableKey, variableValue?: number): string {
+  if (variableKey && variableValue !== undefined) {
+    return getVariableColor(variableKey, variableValue);
   }
+  return "#3b82f6";
 }
 
-export default function WeatherMap({ latitude, longitude, verdict }: Props) {
+export default function WeatherMap({ latitude, longitude, variableKey, variableValue }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.CircleMarker | null>(null);
@@ -37,7 +33,7 @@ export default function WeatherMap({ latitude, longitude, verdict }: Props) {
           '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
       }).addTo(map);
 
-      const color = getMarkerColor(verdict);
+      const color = getMarkerColor(variableKey, variableValue);
       const marker = L.circleMarker([latitude, longitude], {
         radius: 12,
         fillColor: color,
@@ -64,14 +60,14 @@ export default function WeatherMap({ latitude, longitude, verdict }: Props) {
         markerRef.current = null;
       }
     };
-  }, [latitude, longitude, verdict]);
+  }, [latitude, longitude, variableKey, variableValue]);
 
   useEffect(() => {
     if (markerRef.current) {
       markerRef.current.setLatLng([latitude, longitude]);
-      markerRef.current.setStyle({ fillColor: getMarkerColor(verdict) });
+      markerRef.current.setStyle({ fillColor: getMarkerColor(variableKey, variableValue) });
     }
-  }, [latitude, longitude, verdict]);
+  }, [latitude, longitude, variableKey, variableValue]);
 
   return <div ref={mapRef} className="w-full h-full rounded-xl border border-gray-700" />;
 }

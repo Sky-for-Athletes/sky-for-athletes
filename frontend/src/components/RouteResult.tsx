@@ -2,10 +2,13 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { RouteEvaluation } from "../services/weather.service";
+import type { VariableKey } from "../types/weather";
+import { getVariableColor } from "../utils/colorScale";
 
 interface Props {
   data: RouteEvaluation;
   waypoints: [number, number][];
+  variableKey?: VariableKey;
 }
 
 function getColor(score: number): string {
@@ -15,7 +18,12 @@ function getColor(score: number): string {
   return "#ef4444";
 }
 
-export default function RouteResult({ data, waypoints }: Props) {
+function segValue(seg: RouteEvaluation["segments"][0], key?: VariableKey): number {
+  if (!key) return seg.comfortScore;
+  return (seg as any)[key] ?? seg.comfortScore;
+}
+
+export default function RouteResult({ data, waypoints, variableKey }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<L.Map | null>(null);
   const roRef = useRef<ResizeObserver | null>(null);
@@ -40,9 +48,12 @@ export default function RouteResult({ data, waypoints }: Props) {
           segLatLngs.push([waypoints[j][1], waypoints[j][0]]);
         }
 
+        const segVal = segValue(seg, variableKey);
+        const color = variableKey ? getVariableColor(variableKey, segVal) : getColor(segVal);
+
         if (segLatLngs.length >= 2) {
           L.polyline(segLatLngs, {
-            color: getColor(seg.comfortScore),
+            color,
             weight: 5,
             opacity: 0.9,
           }).addTo(map);
@@ -53,13 +64,13 @@ export default function RouteResult({ data, waypoints }: Props) {
           const mid = waypoints[midIdx];
           L.circleMarker([mid[1], mid[0]], {
             radius: 6,
-            fillColor: getColor(seg.comfortScore),
+            fillColor: color,
             color: "#fff",
             weight: 2,
             fillOpacity: 1,
           })
             .addTo(map)
-            .bindTooltip(`${seg.comfortScore}`, { permanent: false, direction: "top" });
+            .bindTooltip(`${segVal}${variableKey === "temperature" || variableKey === "heatIndex" || variableKey === "windChill" ? "°C" : variableKey === "humidity" ? "%" : variableKey === "windSpeed" ? " km/h" : ""}`, { permanent: false, direction: "top" });
         }
       });
 

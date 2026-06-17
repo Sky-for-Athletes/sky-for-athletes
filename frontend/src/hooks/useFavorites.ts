@@ -36,5 +36,10 @@ export function useFavorites() {
     []
   );
 
-  return { favorites, loading, fetchFavorites, addFavorite };
+  const removeFavorite = useCallback(async (id: string) => {
+    await locationService.deleteFavorite(id);
+    setFavorites((prev) => prev.filter((f) => f._id !== id));
+  }, []);
+
+  return { favorites, loading, fetchFavorites, addFavorite, removeFavorite };
 }

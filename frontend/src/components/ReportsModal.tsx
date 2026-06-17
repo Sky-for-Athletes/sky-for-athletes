@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import * as reportService from "../services/report.service";
+import { getErrorMessage } from "../utils/errorMessage";
 
 interface Props {
   open: boolean;
@@ -14,7 +15,7 @@ const reportTypes = [
 ] as const;
 
 export default function ReportsModal({ open, onClose }: Props) {
-  const [type, setType] = useState<string>("weekly-report");
+  const [type, setType] = useState<reportService.GenerateReportData["type"]>("weekly-report");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -34,15 +35,14 @@ export default function ReportsModal({ open, onClose }: Props) {
     setMessage("");
     try {
       const data = await reportService.generateReport({
-        type: type as any,
+        type,
         periodStart: startDate,
         periodEnd: endDate,
       });
       setReports((prev) => [data.report, ...prev]);
       setMessage("Relatório gerado com sucesso!");
-    } catch (err: any) {
-      const msg = err.response?.data?.error || err.message || "Erro ao gerar relatório";
-      setMessage(msg);
+    } catch (err) {
+      setMessage(getErrorMessage(err, "Erro ao gerar relatório"));
     } finally {
       setGenerating(false);
     }
@@ -71,7 +71,7 @@ export default function ReportsModal({ open, onClose }: Props) {
               <label className="block text-gray-300 text-sm font-medium mb-1.5">Tipo</label>
               <select
                 value={type}
-                onChange={(e) => setType(e.target.value)}
+                onChange={(e) => setType(e.target.value as reportService.GenerateReportData["type"])}
                 className="w-full bg-dark-bg border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-green-signal/50"
               >
                 {reportTypes.map((rt) => (

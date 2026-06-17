@@ -18,5 +18,12 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // The "you might not need an effect" guidance this rule cites is about
+      // derived state, not async data fetching — React's own docs still
+      // endorse fetch-in-effect-with-loading-state. Downgraded since this
+      // codebase doesn't use Suspense/a data-fetching library.
+      'react-hooks/set-state-in-effect': 'warn',
+    },
   },
 ])

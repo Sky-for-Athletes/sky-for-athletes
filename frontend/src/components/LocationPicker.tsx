@@ -96,6 +96,10 @@ export default function LocationPicker({ onLocationSelect, selectedLat, selected
       roRef.current?.disconnect();
       roRef.current = null;
     };
+    // Intentionally mount-only: the map must be created exactly once
+    // (guarded by instanceRef); a second effect below handles updates
+    // to selectedLat/selectedLon without recreating the map.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

@@ -3,6 +3,7 @@ import NavbarAuthenticated from "../components/NavbarAuthenticated";
 import PreferenceForm from "../components/PreferenceForm";
 import * as userService from "../services/user.service";
 import { ACTIVITIES } from "../types/weather";
+import { getErrorMessage } from "../utils/errorMessage";
 
 interface SportState {
   name: string;
@@ -52,10 +53,8 @@ export default function Settings() {
     try {
       await userService.updatePreferences({ sports });
       setMessage("Preferências salvas com sucesso!");
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.error || err.message || "Erro ao salvar";
-      setMessage(msg);
+    } catch (err) {
+      setMessage(getErrorMessage(err, "Erro ao salvar"));
     } finally {
       setSaving(false);
     }

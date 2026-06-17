@@ -2,6 +2,7 @@ import { useState } from "react";
 import NavbarAuthenticated from "../components/NavbarAuthenticated";
 import ReportCard from "../components/ReportCard";
 import * as reportService from "../services/report.service";
+import { getErrorMessage } from "../utils/errorMessage";
 
 const reportTypes = [
   { value: "weekly-report", label: "Relatório Semanal" },
@@ -10,7 +11,7 @@ const reportTypes = [
 ] as const;
 
 export default function Reports() {
-  const [type, setType] = useState<string>("weekly-report");
+  const [type, setType] = useState<reportService.GenerateReportData["type"]>("weekly-report");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -23,16 +24,14 @@ export default function Reports() {
     setMessage("");
     try {
       const data = await reportService.generateReport({
-        type: type as any,
+        type,
         periodStart: startDate,
         periodEnd: endDate,
       });
       setReports((prev) => [data.report, ...prev]);
       setMessage("Relatório gerado com sucesso!");
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.error || err.message || "Erro ao gerar relatório";
-      setMessage(msg);
+    } catch (err) {
+      setMessage(getErrorMessage(err, "Erro ao gerar relatório"));
     } finally {
       setGenerating(false);
     }
@@ -57,7 +56,7 @@ export default function Reports() {
             </label>
             <select
               value={type}
-              onChange={(e) => setType(e.target.value)}
+              onChange={(e) => setType(e.target.value as reportService.GenerateReportData["type"])}
               className="w-full bg-dark-bg border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-green-signal/50 focus:border-green-signal"
             >
               {reportTypes.map((rt) => (

@@ -20,7 +20,7 @@ function getColor(score: number): string {
 
 function segValue(seg: RouteEvaluation["segments"][0], key?: VariableKey): number {
   if (!key) return seg.comfortScore;
-  return (seg as any)[key] ?? seg.comfortScore;
+  return seg[key] ?? seg.comfortScore;
 }
 
 export default function RouteResult({ data, waypoints, variableKey }: Props) {
@@ -106,7 +106,7 @@ export default function RouteResult({ data, waypoints, variableKey }: Props) {
         instanceRef.current = null;
       }
     };
-  }, [data, waypoints]);
+  }, [data, waypoints, variableKey]);
 
   return <div ref={mapRef} className="w-full h-full rounded-xl border border-gray-700" />;
 }

@@ -156,7 +156,7 @@ export default function Dashboard() {
                   latitude={location.lat}
                   longitude={location.lon}
                   variableKey={selectedVariable}
-                  variableValue={(data as any)[selectedVariable]}
+                  variableValue={data[selectedVariable]}
                 />
               </div>
             ) : (

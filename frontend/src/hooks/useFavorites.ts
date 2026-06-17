@@ -3,10 +3,9 @@ import * as locationService from "../services/location.service";
 
 export function useFavorites() {
   const [favorites, setFavorites] = useState<locationService.FavoriteLocation[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchFavorites = useCallback(async () => {
-    setLoading(true);
     try {
       const data = await locationService.getFavorites();
       setFavorites(data);

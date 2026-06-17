@@ -3,10 +3,9 @@ import { getHistory, type SearchHistoryItem } from "../services/location.service
 
 export function useSearchHistory() {
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
-    setLoading(true);
     try {
       const data = await getHistory();
       setHistory(data);

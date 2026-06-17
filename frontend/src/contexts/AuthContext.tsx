@@ -1,54 +1,15 @@
-import { createContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import * as authService from "../services/auth.service";
+import { AuthContext, type User, type RegisterOptions } from "./auth-context";
 
-interface User {
-  id: string;
-  email: string;
-  username: string;
-  role: string;
+function readStoredUser(): User | null {
+  const storedUser = localStorage.getItem("@skyrunner:user");
+  return storedUser ? JSON.parse(storedUser) : null;
 }
-
-interface RegisterOptions {
-  email: string;
-  username: string;
-  password: string;
-  sports?: string[];
-  preferencesMode?: "default" | "custom";
-  customThresholds?: Array<{
-    name: string;
-    temperatureMin: number;
-    temperatureMax: number;
-    humidityMax: number;
-    windMax: number;
-  }>;
-  favoriteLocations?: Array<{ name: string; coordinates?: { lat: number; lon: number } }>;
-}
-
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (opts: RegisterOptions) => Promise<void>;
-  logout: () => void;
-}
-
-export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const storedToken = localStorage.getItem("@skyrunner:token");
-    const storedUser = localStorage.getItem("@skyrunner:user");
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
-  }, []);
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("@skyrunner:token"));
+  const [user, setUser] = useState<User | null>(readStoredUser);
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await authService.login({ email, password });
@@ -84,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { ACTIVITIES, SPORT_DEFAULTS, type ISportPreference } from "../types/weather";
+import { nominatimCity, type NominatimResult } from "../utils/nominatim";
+import { getErrorMessage } from "../utils/errorMessage";
 
 const stepLabels = ["Conta", "Esportes", "Preferências", "Favoritos"];
 
@@ -58,11 +60,12 @@ export default function Signup() {
       );
       if (!res.ok) return;
       const data = await res.json();
-      const mapped = data.map((item: any) => {
-        const addr = item.address || {};
-        const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || addr.state || "";
-        return { displayName: item.display_name, city, lat: parseFloat(item.lat), lon: parseFloat(item.lon) };
-      });
+      const mapped = (data as NominatimResult[]).map((item) => ({
+        displayName: item.display_name,
+        city: nominatimCity(item),
+        lat: parseFloat(item.lat),
+        lon: parseFloat(item.lon),
+      }));
       setSearchResults(mapped);
       setSearchOpen(mapped.length > 0);
       if (searchInputRef.current && mapped.length > 0) {
@@ -183,9 +186,8 @@ export default function Signup() {
           : undefined,
       });
       navigate("/dashboard");
-    } catch (err: any) {
-      const msg = err.response?.data?.error || err.message || "Erro ao cadastrar";
-      setError(msg);
+    } catch (err) {
+      setError(getErrorMessage(err, "Erro ao cadastrar"));
     } finally {
       setLoading(false);
     }
@@ -318,7 +320,7 @@ export default function Signup() {
                             <div key={field}>
                               <label className="block text-gray-500 text-xs mb-0.5">{label}</label>
                               <input type="number" step="any"
-                                value={(thresholds as any)[field] ?? ""}
+                                value={(thresholds as Record<string, number>)[field] ?? ""}
                                 onChange={(e) => handleThresholdChange(sport, field, Number(e.target.value))}
                                 className="w-full bg-dark-bg border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-green-signal/50" />
                             </div>

@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import * as weatherService from "../services/weather.service";
+import { getErrorMessage } from "../utils/errorMessage";
 
 export function useWeather() {
   const [data, setData] = useState<weatherService.WeatherEvaluation | null>(null);
@@ -16,9 +17,8 @@ export function useWeather() {
         const result = await weatherService.evaluate(latitude, longitude, activity);
         setData(result);
         return result;
-      } catch (err: any) {
-        const msg = err.response?.data?.error || err.message || "Erro ao avaliar clima";
-        setError(msg);
+      } catch (err) {
+        setError(getErrorMessage(err, "Erro ao avaliar clima"));
         return null;
       } finally {
         setLoading(false);
@@ -36,9 +36,8 @@ export function useWeather() {
         const result = await weatherService.evaluateRoute(waypoints, activity);
         setRouteData(result);
         return result;
-      } catch (err: any) {
-        const msg = err.response?.data?.error || err.message || "Erro ao avaliar rota";
-        setError(msg);
+      } catch (err) {
+        setError(getErrorMessage(err, "Erro ao avaliar rota"));
         return null;
       } finally {
         setLoading(false);

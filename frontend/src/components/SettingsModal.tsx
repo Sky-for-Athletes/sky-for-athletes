@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import * as userService from "../services/user.service";
 import { ACTIVITIES, SPORT_DEFAULTS } from "../types/weather";
+import { getErrorMessage } from "../utils/errorMessage";
 
 interface SportState {
   name: string;
@@ -33,11 +34,13 @@ export default function SettingsModal({ open, onClose }: Props) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    if (open) {
-      setMessage("");
-    }
-  }, [open]);
+  // Reset the stale message when the modal reopens, without an effect
+  // (see "Adjusting state when a prop changes" in the React docs).
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setMessage("");
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -63,9 +66,8 @@ export default function SettingsModal({ open, onClose }: Props) {
       await userService.updatePreferences({ sports });
       setMessage("Preferências salvas com sucesso!");
       setTimeout(onClose, 1200);
-    } catch (err: any) {
-      const msg = err.response?.data?.error || err.message || "Erro ao salvar";
-      setMessage(msg);
+    } catch (err) {
+      setMessage(getErrorMessage(err, "Erro ao salvar"));
     } finally {
       setSaving(false);
     }
@@ -99,7 +101,7 @@ export default function SettingsModal({ open, onClose }: Props) {
                     <input
                       type="number"
                       step="any"
-                      value={(sport as any)[field] ?? ""}
+                      value={(sport as unknown as Record<string, number>)[field] ?? ""}
                       onChange={(e) => handleChange(i, field, Number(e.target.value))}
                       className="w-full bg-surface border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-signal/50"
                     />

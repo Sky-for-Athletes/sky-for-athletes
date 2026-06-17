@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
 // @ts-expect-error - lottie-react ESM entry exports Lottie as default
 import Lottie from "lottie-react/build/index.es.js";
+import type { LottieRefCurrentProps } from "lottie-react";
 import animationData from "../assets/animation_sport.json";
 
 export default function SportAnimator() {
-  const lottieRef = useRef<any>(null);
+  const lottieRef = useRef<LottieRefCurrentProps | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

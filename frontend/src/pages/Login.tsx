@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { getErrorMessage } from "../utils/errorMessage";
 
 export default function Login() {
   const { login } = useAuth();
@@ -18,10 +19,8 @@ export default function Login() {
     try {
       await login(email, password);
       navigate("/dashboard");
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.error || err.message || "Erro ao fazer login";
-      setError(msg);
+    } catch (err) {
+      setError(getErrorMessage(err, "Erro ao fazer login"));
     } finally {
       setLoading(false);
     }

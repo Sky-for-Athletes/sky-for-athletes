@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { nominatimCity, type NominatimResult } from "../utils/nominatim";
 
 interface SearchResult {
   lat: number;
@@ -38,23 +39,12 @@ export default function LocationSearch({ onSelect }: Props) {
       if (!res.ok) return;
       const data = await res.json();
 
-      const mapped: SearchResult[] = data.map((item: any) => {
-        const addr = item.address || {};
-        const city =
-          addr.city ||
-          addr.town ||
-          addr.village ||
-          addr.municipality ||
-          addr.county ||
-          addr.state ||
-          "";
-        return {
-          lat: Number(item.lat),
-          lon: Number(item.lon),
-          displayName: item.display_name,
-          city,
-        };
-      });
+      const mapped: SearchResult[] = (data as NominatimResult[]).map((item) => ({
+        lat: Number(item.lat),
+        lon: Number(item.lon),
+        displayName: item.display_name,
+        city: nominatimCity(item),
+      }));
 
       setResults(mapped);
       setOpen(mapped.length > 0);

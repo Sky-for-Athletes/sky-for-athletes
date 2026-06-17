@@ -24,7 +24,7 @@ export default function PreferenceForm({ sport, index, onChange }: Props) {
             <input
               type="number"
               step="any"
-              value={(sport as any)[field] ?? ""}
+              value={(sport as unknown as Record<string, number>)[field] ?? ""}
               onChange={(e) =>
                 onChange(index, field, Number(e.target.value))
               }

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { getErrorMessage } from "../utils/errorMessage";
 
 type PlannerMode = "draw" | "auto";
 
@@ -25,10 +26,14 @@ export default function RoutePlanner({ onRouteChange, waypoints }: Props) {
   const [routing, setRouting] = useState(false);
 
   const modeRef = useRef(mode);
-  modeRef.current = mode;
+  useLayoutEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   const pointsRef = useRef<[number, number][]>(localPoints);
-  pointsRef.current = localPoints;
+  useLayoutEffect(() => {
+    pointsRef.current = localPoints;
+  }, [localPoints]);
 
   const commitRoute = useCallback((pts: [number, number][]) => {
     onRouteChange(pts);
@@ -121,13 +126,16 @@ export default function RoutePlanner({ onRouteChange, waypoints }: Props) {
       roRef.current?.disconnect();
       roRef.current = null;
     };
+    // Intentionally mount-only: the map must be created exactly once
+    // (guarded by instanceRef).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!instanceRef.current || waypoints === undefined) return;
     setLocalPoints(waypoints);
     updateVisuals(instanceRef.current, waypoints);
-  }, [waypoints]);
+  }, [waypoints, updateVisuals]);
 
   const handleUndo = useCallback(() => {
     const updated = localPoints.slice(0, -1);
@@ -137,7 +145,7 @@ export default function RoutePlanner({ onRouteChange, waypoints }: Props) {
     }
     if (updated.length >= 2) commitRoute(updated);
     else commitRoute([]);
-  }, [localPoints, commitRoute]);
+  }, [localPoints, commitRoute, updateVisuals]);
 
   const handleClear = useCallback(() => {
     setLocalPoints([]);
@@ -145,7 +153,7 @@ export default function RoutePlanner({ onRouteChange, waypoints }: Props) {
       updateVisuals(instanceRef.current, []);
     }
     commitRoute([]);
-  }, [commitRoute]);
+  }, [commitRoute, updateVisuals]);
 
   const handleFinish = useCallback(() => {
     if (localPoints.length >= 2) {
@@ -184,12 +192,12 @@ export default function RoutePlanner({ onRouteChange, waypoints }: Props) {
         map.fitBounds(L.latLngBounds(coords.map((c) => [c[1], c[0]] as [number, number])));
       }
       commitRoute(coords);
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      alert(getErrorMessage(err, "Erro ao calcular rota"));
     } finally {
       setRouting(false);
     }
-  }, [origin, destination, commitRoute]);
+  }, [origin, destination, commitRoute, updateVisuals]);
 
   useEffect(() => {
     if (instanceRef.current && mode === "draw" && localPoints.length >= 2) {
@@ -197,6 +205,9 @@ export default function RoutePlanner({ onRouteChange, waypoints }: Props) {
       const bounds = L.latLngBounds(localPoints.map((p) => [p[1], p[0]] as [number, number]));
       map.fitBounds(bounds, { padding: [40, 40] });
     }
+    // Intentionally only re-fits bounds on mode change, not on every
+    // localPoints update (which would re-fit while the user is drawing).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   return (
